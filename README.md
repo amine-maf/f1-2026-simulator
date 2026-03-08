@@ -1,13 +1,13 @@
-# 🏎️ F1 2026 Season Predictor: New Regulations Era
+# F1 2026 Season Predictor: New Regulations Era
 
 A real-time Machine Learning prediction pipeline designed specifically for the massive **2026 Formula 1 Technical Regulations** overhaul.
 
-## ⚠️ Why a New 2026-Only Project?
+## Why a New 2026-Only Project?
 The 2026 regulations represent the biggest technical reset in modern F1 history (50/50 ICE/ERS power split, active aerodynamics, smaller cars). Because of this, historical data from 2018-2025 is structurally irrelevant. 
 
 To prevent "data leakage" from past eras (e.g., Red Bull's previous ground-effect dominance), this model is trained **exclusively on live 2026 data**, utilizing a dynamic Temporal Split architecture.
 
-## 🧠 Machine Learning Architecture
+## Machine Learning Architecture
 
 The pipeline uses a **Leave-One-Out Temporal Split**:
 1. **Feature Engineering**: Extracts Free Practice Pace (Short & Long runs) and Qualifying gap-to-pole directly from the FastF1 telemetry API.
@@ -15,7 +15,7 @@ The pipeline uses a **Leave-One-Out Temporal Split**:
     *Note: We use a penalized **Logistic Regression** for the early season (Races 1-4) because the sample size (N < 80 rows) is mathematically too small for Gradient Boosting (XGBoost/LightGBM) to perform leaf splits without severe overfitting. XGBoost can be swapped in from Round 5 onwards.*
 3. **Live Inference**: The model then applies these learned weights to the Practice/Quali data of Race $N$ to output probabilistic win percentages before the lights go out.
 
-## 🚀 How to Run Predictions on a Race Weekend
+## How to Run Predictions on a Race Weekend
 
 This pipeline is built for **Live MLOps**. Here is exactly how to use it during a race weekend:
 
