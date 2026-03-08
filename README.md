@@ -9,9 +9,10 @@ To prevent "data leakage" from past eras (e.g., Red Bull's previous ground-effec
 
 ## 🧠 Machine Learning Architecture
 
-The pipeline uses a **Leave-One-Out Temporal Split** via `scikit-learn` Logistic Regression:
+The pipeline uses a **Leave-One-Out Temporal Split**:
 1. **Feature Engineering**: Extracts Free Practice Pace (Short & Long runs) and Qualifying gap-to-pole directly from the FastF1 telemetry API.
 2. **Dynamic Training**: To predict Race $N$, the model trains on the relationship between Practice/Quali and Race Results from Races $1$ to $N-1$.
+    *Note: We use a penalized **Logistic Regression** for the early season (Races 1-4) because the sample size (N < 80 rows) is mathematically too small for Gradient Boosting (XGBoost/LightGBM) to perform leaf splits without severe overfitting. XGBoost can be swapped in from Round 5 onwards.*
 3. **Live Inference**: The model then applies these learned weights to the Practice/Quali data of Race $N$ to output probabilistic win percentages before the lights go out.
 
 ## 🚀 How to Run Predictions on a Race Weekend
