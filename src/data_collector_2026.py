@@ -123,7 +123,7 @@ def build_2026_dataset():
     year = 2026
     
     schedule = fastf1.get_event_schedule(year, include_testing=False)
-    target_formats = ["conventional", "sprint", "sprint_shootout"]
+    target_formats = ["conventional", "sprint", "sprint_shootout", "sprint_qualifying"]
     race_events = schedule[schedule["EventFormat"].isin(target_formats)]
 
     all_records = []

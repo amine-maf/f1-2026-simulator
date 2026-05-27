@@ -1,54 +1,109 @@
-# F1 2026 Season Predictor: New Regulations Era
+# 🏎️  F1 2026 Race Simulator
 
-A real-time Machine Learning prediction pipeline designed specifically for the massive **2026 Formula 1 Technical Regulations** overhaul.
+A real-time **Monte Carlo race simulator** built for the 2026 Formula 1 regulation reset.
+From a Friday Free Practice session to 10 000 plausible race outcomes — with live weather,
+backtested predictions and an interactive dashboard.
 
-## Why a New 2026-Only Project?
-The 2026 regulations represent the biggest technical reset in modern F1 history (50/50 ICE/ERS power split, active aerodynamics, smaller cars). Because of this, historical data from 2018-2025 is structurally irrelevant. 
+![python](https://img.shields.io/badge/python-3.10+-blue)
+![streamlit](https://img.shields.io/badge/streamlit-1.40+-FF4B4B)
+![status](https://img.shields.io/badge/status-live-success)
 
-To prevent "data leakage" from past eras (e.g., Red Bull's previous ground-effect dominance), this model is trained **exclusively on live 2026 data**, utilizing a dynamic Temporal Split architecture.
+---
 
-## Machine Learning Architecture
+## ✨ What it does
 
-The pipeline uses a **Leave-One-Out Temporal Split**:
-1. **Feature Engineering**: Extracts Free Practice Pace (Short & Long runs) and Qualifying gap-to-pole directly from the FastF1 telemetry API.
-2. **Dynamic Training**: To predict Race $N$, the model trains on the relationship between Practice/Quali and Race Results from Races $1$ to $N-1$.
-    *Note: We use a penalized **Logistic Regression** for the early season (Races 1-4) because the sample size (N < 80 rows) is mathematically too small for Gradient Boosting (XGBoost/LightGBM) to perform leaf splits without severe overfitting. XGBoost can be swapped in from Round 5 onwards.*
-3. **Live Inference**: The model then applies these learned weights to the Practice/Quali data of Race $N$ to output probabilistic win percentages before the lights go out.
+| Feature | Detail |
+|---|---|
+| 🏁  **Race prediction** | Probability of win / podium / points for every driver |
+| 🎲  **Monte Carlo** | 10 000 lap-by-lap simulations with tyre deg, pit stops, Safety Cars, DNFs |
+| 🌦  **Live weather** | Race-day forecast pulled from open-meteo.com per circuit |
+| 📊  **Backtest** | Top-1 accuracy, top-3 hit rate and Brier score on every completed 2026 race |
+| 🔍  **Driver deep-dive** | Position distribution histogram + 6-metric summary per driver |
+| 🧭  **How-it-works tab** | Pipeline schema + engineering rationale |
 
-## How to Run Predictions on a Race Weekend
+## 🎯 Why a new 2026-only project?
 
-This pipeline is built for **Live MLOps**. Here is exactly how to use it during a race weekend:
+The 2026 regulations represent the biggest technical reset in modern F1 history
+(50/50 ICE/ERS power split, active aerodynamics, smaller cars). Historical data from
+2018–2025 is structurally irrelevant. The simulator is therefore **trained and validated
+exclusively on live 2026 data** as the season unfolds.
 
-### For a Standard Weekend
-1. **Wait for Qualifying to finish** (Saturday afternoon).
-2. Run data collection to fetch FP1, FP2, FP3, and Quali telemetry:
-   ```bash
-   python src/data_collector_2026.py
-   ```
-3. Run the prediction notebook:
-   ```bash
-   jupyter nbconvert --to notebook --execute 03_race_predictor.ipynb
-   ```
-   *This will output the probability of each driver winning Sunday's Grand Prix.*
+## 🧠 The model in one paragraph
 
-### For a Sprint Weekend (e.g., China 🇨🇳)
-Sprint weekends have two races, meaning two prediction windows:
+Race pace is built from a blend of **GapToPole (70%)** and **best FP short-run lap (30%)** —
+ignoring FP long runs because fuel loads and engine modes pollute them. The quali deltas
+are scaled by a `QualiRaceRatio = 0.35` to reflect race-day fuel-saving and tyre
+management. The simulator then runs a vectorised lap-by-lap loop with linear tyre
+degradation per compound (SOFT 0.10 s/lap, MEDIUM 0.05, HARD 0.03), a single pit stop,
+a Bernoulli Safety Car (compresses gaps × 0.55), per-driver DNF rolls, and an optional
+wet-weather variance bump. Backtest: **60% top-1 accuracy across the first 5 races of 2026**.
 
-**Prediction 1: The Sprint Race**
-1. Wait for **Sprint Qualifying (SQ)** to finish (Friday afternoon).
-2. Run the pipeline (fetches FP1 + SQ data).
-3. The model will predict the winner of the Saturday Sprint Race.
+## 🚀 Quick start
 
-**Prediction 2: The Sunday Grand Prix**
-1. Wait for **Main Qualifying** to finish (Saturday afternoon).
-2. Run the pipeline again (fetches FP1, SQ, Sprint Race result, and Main Quali).
-3. The model trains on the Sprint Race result and predicts the Sunday Grand Prix winner!
+```bash
+# 1) Set up
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 
-## 📂 Project Structure
+# 2) Fetch the latest weekend data (after qualifying)
+python src/data_collector_2026.py
 
-- `src/data_collector_2026.py` - Custom FastF1 parser that extracts FP long-run pace degradation slopes and Qualifying deltas.
-- `01_season_overview.ipynb` - High-level championship tracking.
-- `02_feature_engineering.ipynb` - Correlation heatmaps proving the predictive power of FP Pace under 2026 regulations.
-- `03_race_predictor.ipynb` - The core ML inference notebook.
+# 3a) Run the dashboard
+streamlit run app.py
+# → http://localhost:8501
 
-*Built for the 2026 F1 Season. May the best algorithm win.*
+# 3b) Or a quick CLI prediction (auto-detects the upcoming GP)
+python predict.py
+python predict.py --gp monaco   # force a specific GP
+python predict.py --list        # show available events
+```
+
+## 📂 Project layout
+
+```
+07_f1_2026_prediction/
+├── app.py                       Streamlit dashboard (3 tabs)
+├── predict.py                   One-shot CLI predictor with auto-detect
+├── race_simulator.py            Vectorised lap-by-lap Monte Carlo engine
+├── weather_api.py               open-meteo client + circuit coordinates
+├── backtest.py                  Leave-one-race scoring (top-1, top-3, Brier)
+├── src/data_collector_2026.py   FastF1 → parquet feature pipeline
+├── 02_feature_engineering.ipynb Exploratory analysis of FP / Quali signals
+├── data/f1_2026_dataset.parquet Master dataset (rebuilt each weekend)
+└── .streamlit/config.toml       Dark theme
+```
+
+## 🌐 Deploy on Streamlit Cloud
+
+1. Push this folder to a public GitHub repo.
+2. Sign in at [share.streamlit.io](https://share.streamlit.io) with GitHub.
+3. **New app** → pick your repo, branch `main`, main file path `app.py`.
+4. Done — you get a public URL like `https://<your-name>-f1-2026.streamlit.app`.
+
+The `requirements.txt` and `.streamlit/config.toml` in this folder are enough for a
+zero-config deploy.
+
+## 🛠 How a race weekend flows
+
+```
+Friday  → FP1, FP2 happen
+Saturday morning → FP3 then Qualifying happens
+                ↓
+        python src/data_collector_2026.py   (refresh parquet)
+                ↓
+                streamlit run app.py        (interact + screenshot)
+                ↓
+Sunday  → race result auto-feeds the next backtest cycle
+```
+
+## ⚠️ Caveats
+
+- The pace model is calibrated for a 2-compound, 1-stop race. Bahrain and the like will
+  drift if the field runs 2-stops; the strategy sliders let you compensate manually.
+- The simulator ignores DRS gain, tyre warm-up, and overtake difficulty — these are
+  approximated through lap noise rather than modelled explicitly.
+- Backtest sample is currently **5 races** — interpret accuracy figures with that in mind.
+
+---
+
+*Built with FastF1 · NumPy · open-meteo · Plotly · Streamlit. May the best algorithm win.*
